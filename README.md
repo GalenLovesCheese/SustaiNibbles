@@ -1,5 +1,10 @@
 # **SUTD WHAT THE HACK 2024: SustaiNibbles (Gyattmorningteam)**
 ## **Circular Economy & Sustainable Living**
+### **Description**
+**SustaiNibbles** (Sustainable + Edible/Nibbles) is a Telegram bot initiative designed to tackle food waste by connecting individuals and businesses with surplus leftover food. 
+
+Catering companies often discard leftover meals after events, and food and beverage establishments frequently face unsold items at the end of the day or week. SustaiNibbles aims to provide an accessible platform for businesses and individuals to send and receive notifications about available surplus food, making it easier to share what would otherwise go to waste. By increasing access to excess food, reducing waste and promoting sustainable practices, SustaiNibbles helps **build a more circular economy, sustainable lifestyle and resource-efficient community**.
+
 ### **Background**
 Food waste is a pressing global issue with far-reaching environmental, economic, and social implications. According to the Food and Agriculture Organization (FAO), approximately one-third of all food produced globally—about 1.3 billion tons—is wasted every year. This waste occurs across the supply chain, from production and processing to retail and consumption. Such wastage not only squanders valuable resources like water, energy, and labor but also contributes significantly to greenhouse gas emissions when discarded food ends up in landfills.
 
@@ -9,13 +14,15 @@ Sustainable living emphasizes mindful consumption and reducing waste at the indi
 
 ### **Story Inspiration**
 
+Food waste is a global issue that often hits close to home, and sometimes inspiration comes from personal experiences. For many food establishments, leftover food that remains unsold at the end of the day often goes to waste, despite being perfectly edible. The challenge lies not in the lack of surplus food but in the absence of an efficient avenue to redistribute it.
 
-## **Description**
-**SustaiNibbles** (Sustainable + Edible/Nibbles) is a Telegram bot initiative designed to tackle food waste by connecting individuals and businesses with surplus leftover food. 
+In this context, the story begins with a simple yet thought-provoking observation:
 
-Catering companies often discard leftover meals after events, and food and beverage establishments frequently face unsold items at the end of the day or week. SustaiNibbles aims to provide an accessible platform for businesses and individuals to send and receive notifications about available surplus food, making it easier to share what would otherwise go to waste. By increasing access to excess food, reducing waste and promoting sustainable practices, SustaiNibbles helps **build a more circular economy, sustainable lifestyle and resource-efficient community**.
+"My sister works part-time in a café. At the end of her shifts, she often brings back leftover sandwiches—still fresh and entirely consumable but unable to be sold the next day. She told me this was standard practice across many cafés and restaurants. While these businesses dislike the idea of wasting food, they often lack the infrastructure or connections to donate it."
 
-### **Contributing**
+This personal connection sparked an idea. What if there was a way to bridge the gap between businesses with surplus food and individuals or organizations that could benefit from it? The unused food could be a source of nourishment for someone in need, but without an accessible system in place, it often ends up in the trash.
+
+## **Contributing**
 ```
 python -m venv .venv
 .venv/Scripts/activate
@@ -24,7 +31,7 @@ pip install -r requirements.txt
 
 Telegram bot: `@sustainibot`
 
-### **Team**
+## **Team**
 - Louis 
 - Tsun Yang 
 - Danial
