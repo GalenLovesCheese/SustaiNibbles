@@ -3,7 +3,11 @@
 # Description
 
 
-# TEAM
+## Product
+Given the theme of Blah blah blah, we are going to jump (change this pls)
+
+
+## TEAM
 - Louis 
 - Tsun Yang 
 - Danial
