@@ -1,7 +1,9 @@
 # SUTD WHAT THE HACK 2024 (GYATTMORNINGTEAM)
 
+## Product
+Given the theme of Blah blah blah, we are going to jump (change this pls)
 
-# TEAM
+## TEAM
 - Louis 
 - Tsun Yang 
 - Danial
