@@ -19,7 +19,7 @@ Catering companies often discard leftover meals after events, and food and bever
 ```
 python -m venv .venv
 .venv/Scripts/activate
-pip install -r reqiurements.txt
+pip install -r requirements.txt
 ```
 
 Telegram bot: `@sustainibot`
