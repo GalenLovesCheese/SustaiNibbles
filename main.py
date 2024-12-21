@@ -4,7 +4,9 @@ import mysql.connector
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from dotenv import load_dotenv
+import mysql.connector
 
+## initialize the bot, database
 load_dotenv()
 
 PASS = os.getenv('PASSWORD')
@@ -24,10 +26,40 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
+
+db = mysql.connector.connect(
+  host="localhost",
+  user="yourusername",
+  password="yourpassword",
+  database="mydatabase"
+)
+
+cursor = db.cursor()
+
 TOKEN = os.getenv('TOKEN')
-    
+
+## define commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="hi")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to Sustainibles! Run /join to get started!")
+
+async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """BUSINESS: Announce details of food surplus\nFormat:\nLOCATION: <location>\nMESSAGE: <message>\nPAX: <pax>"""
+    message = update.message.text
+    user_id = update.effective_user.id
+    
+    cursor.execute("SELECT * FROM users where username == %s", user_id)
+    result = cursor.fetchone()
+
+    if result and result['role'] == "business":
+        location = message.split("LOCATION: ")[1].split("\n")[0]
+        message = message.split("MESSAGE: ")[1].split("\n")[0]
+        pax = message.split("PAX: ")[1].split("\n")[0]
+        
+        cursor.execute("INSERT INTO announcements (location, message, pax) VALUES (%s, %s, %s)", (location, message, pax))
+        
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement has been made!")
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
 
 def main() -> None:
     """Start the bot."""
@@ -36,7 +68,7 @@ def main() -> None:
 
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
-    #application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("announce", announce))
 
     # on non command i.e message - echo the message on Telegram
     #application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
