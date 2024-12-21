@@ -3,8 +3,16 @@ import logging
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters,ConversationHandler
 from dotenv import load_dotenv
+import mysql.connector
 
 load_dotenv()
+
+mydb=mysql.connector.connect(
+    host="localhost",
+    user='root',
+    password = os.getenv('MYSQL_PASS'),
+
+)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -147,6 +155,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(conv_handler)
+    
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
