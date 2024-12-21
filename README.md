@@ -9,6 +9,8 @@ python -m venv .venv
 pip install -r reqiurements.txt
 ```
 
+Telegram bot: `@sustainibot`
+
 
 ## Product
 Given the theme of Blah blah blah, we are going to jump (change this pls)
