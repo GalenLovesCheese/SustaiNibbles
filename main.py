@@ -10,10 +10,11 @@ import mysql.connector
 load_dotenv()
 
 PASS = os.getenv('PASSWORD')
+USER = os.getenv('USER')
 
 mydb = mysql.connector.connect(
     host="localhost",
-    user="root",
+    user= USER,
     password = PASS,
     database = "sustainibbles"
 )
@@ -27,11 +28,11 @@ logging.basicConfig(
 
 cursor = mydb.cursor()
 #mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255))")
-mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business')")
-cursor.execute("SELECT * FROM Users")
-myresult = cursor.fetchall()
-for x in myresult:
-    print(x)
+# mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business')")
+# cursor.execute("SELECT * FROM Users")
+# myresult = cursor.fetchall()
+# for x in myresult:
+#     print(x)
 
 TOKEN = os.getenv('TOKEN')
 
@@ -61,34 +62,33 @@ NAME, TYPE = range(2)
 
 # /join function
 async def join(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Please provide your Name:")
-    return NAME
-
-async def set_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["name"] = update.message.text
-    await update.message.reply_text("Thanks! Now provide the Type:")
+    # Automatically set the user's name as their effective_user.id
+    context.user_data["name"] = update.effective_user.id
     type_buttons = [["Individual"], ["Business"]]
     reply_markup = ReplyKeyboardMarkup(type_buttons, one_time_keyboard=True, resize_keyboard=True)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Please select a type to proceed:",
+    await update.message.reply_text(
+        text="Welcome! Your user ID has been set as your name. Please select a type:",
         reply_markup=reply_markup
     )
     return TYPE
 
 async def set_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Retrieve the name and selected type
     name = context.user_data.get("name")
-    type_i = update.message.text
+    type_ = update.message.text
+
+    # Validate the type selection
+    if type_ not in ["Individual", "Business"]:
+        await update.message.reply_text("Invalid selection. Please choose either 'Individual' or 'Business' using the buttons.")
+        return TYPE  # Stay in the TYPE state
 
     # Insert data into MySQL database
     try:
-        cursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_i))
+        mycursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_))
         # mydb.commit()
-        await update.message.reply_text(f"Successfully added Name: {name} with type: {type_i} to the database!")
+        await update.message.reply_text(f"Successfully registered ID: {name} with type: {type_}!")
     except mysql.connector.Error as err:
-        await update.message.reply_text(f"Failed to add data to the database: {err}")
-
-    # await update.message.reply_text(f"Received Name: {name} and Type: {type_i} (not saved to the database).")
+        await update.message.reply_text(f"Database error: {err}")
 
     return ConversationHandler.END
 
@@ -108,11 +108,10 @@ def main() -> None:
     # on non command i.e message - echo the message on Telegram
     #application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-    # Conversation handler for /join
+    # Add conversation handler for /join
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("join", join)],
         states={
-            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_name)],
             TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_type)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
