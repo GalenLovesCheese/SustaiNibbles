@@ -2,12 +2,16 @@ import os
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
-TOKEN = os.environ.get('TOKEN')
+TOKEN = os.getenv('TOKEN')
+print(TOKEN)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="hi")
