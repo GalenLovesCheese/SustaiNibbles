@@ -2,6 +2,11 @@
 
 # Description
 
+## Contributing
+`python -m venv .venv`
+`.venv/Scripts/activate`
+`pip install -r reqiurements.txt`
+
 
 ## Product
 Given the theme of Blah blah blah, we are going to jump (change this pls)
