@@ -4,7 +4,6 @@ import mysql.connector
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
 from dotenv import load_dotenv
-import mysql.connector
 
 ## initialize the bot, database
 load_dotenv()
@@ -19,21 +18,32 @@ mydb = mysql.connector.connect(
 )
 
 mycursor = mydb.cursor()
+#Executes database code if doesn't exist yet
+mycursor.execute("SHOW DATABASES")
+databases = mycursor.fetchall()
+databaseExists = False
+for database in databases:
+    if 'sustainibbles' in database:
+        databaseExists = True
+        break
 
+if databaseExists == False:
+    mycursor.execute("CREATE DATABASE sustainibbles")
+    mycursor.execute("CREATE TABLE Users (User VARCHAR(255), Type VARCHAR(255) CHECK(Type = 'Individual' OR Type = 'Business'))")
+    mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
+    mycursor.execute("INSERT INTO Users(User, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business')")
+    mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3)")
+
+
+
+        
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-db = mysql.connector.connect(
-  host="localhost",
-  user="yourusername",
-  password="yourpassword",
-  database="mydatabase"
-)
 
-cursor = db.cursor()
 
 TOKEN = os.getenv('TOKEN')
 
