@@ -11,8 +11,9 @@ mydb=mysql.connector.connect(
     host="localhost",
     user='root',
     password = os.getenv('MYSQL_PASS'),
-
 )
+
+mycursor = mydb.cursor()
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
