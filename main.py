@@ -9,7 +9,6 @@ logging.basicConfig(
 )
 TOKEN = os.environ.get('TOKEN')
 
-    
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="hi")
 
