@@ -3,9 +3,11 @@
 # Description
 
 ## Contributing
-`python -m venv .venv`
-`.venv/Scripts/activate`
-`pip install -r reqiurements.txt`
+```
+python -m venv .venv
+.venv/Scripts/activate
+pip install -r reqiurements.txt
+```
 
 
 ## Product
