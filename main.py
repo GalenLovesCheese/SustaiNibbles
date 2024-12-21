@@ -1,7 +1,7 @@
 import os
 import logging
 import mysql.connector
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
 import mysql.connector
@@ -59,21 +59,95 @@ TOKEN = os.getenv('TOKEN')
 
 ## define commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Get information about SustaiNibbles initiative"""
     user_id = str(update.effective_user.id)
     print("DEBUG UID: ", user_id)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles! Run /join to get started!")
+
+
+REGION, NEIGHBOURHOOD = range(2)
+
+regions = {
+    "North": ["Sembawang", "Woodlands", "Yishun"],
+    "North-East": ["Ang Mo Kio", "Hougang", "Punggol", "Sengkang", "Serangoon"],
+    "East": ["Bedok", "Pasir Ris", "Tampines"],
+    "West": ["Bukit Batok", "Bukit Panjang", "Choa Chu Kang", "Clementi", "Jurong East", "Jurong West", "Tengah"],
+    "Central": ["Bishan", "Bukit Merah", "Bukit Timah", "Central Area", "Geylang", "Kallang/Whampoa", "Marine Parade", "Queenstown", "Toa Payoh"]
+    }
+
+async def location_constructor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Helper function for location selection: /nearby, /announce"""
+    regions_info = ""
+    for key, values in regions.items():
+        regions_info += f"{key.upper()}:\n"
+        for value in values:
+            regions_info += f"{value}\n"
+        regions_info += "\n"
+        
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=regions_info)
+
+    region_buttons = [["North", "North-East"], ["East", "West"], ["Central"]]
+    reply_markup = ReplyKeyboardMarkup(region_buttons, one_time_keyboard=True, resize_keyboard=True)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Please select a general region to proceed:",
+        reply_markup=reply_markup
+    )
+    return REGION
+
+
+async def region_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    selected_region = update.message.text
+
+    if selected_region in regions:
+        context.user_data['selected_region'] = selected_region
+        neighbourhoods = regions[selected_region]
+        neighbourhood_buttons = [[neighbourhood] for neighbourhood in neighbourhoods]
+        reply_markup = ReplyKeyboardMarkup(neighbourhood_buttons, one_time_keyboard=True, resize_keyboard=True)
+        
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Great! Please select a neighbourhood within {selected_region}:",
+            reply_markup=reply_markup
+        )
+        #return NEIGHBOURHOOD
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Invalid region. Please try again."
+        )
+        return REGION
+
+async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    selected_neighbourhood = update.message.text
+    selected_region = context.user_data.get('selected_region')
+
+    if selected_region and selected_neighbourhood in regions[selected_region]:
+        context.user_data['selected_neighbourhood'] = selected_neighbourhood
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"You have selected {selected_neighbourhood} in the {selected_region} region."
+        )
+        return LOCATION
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Something went wrong. Please start over."
+        )
+    return ConversationHandler.END
+#end helper
 
 # /announce
 LOCATION, MESSAGE, PAX = range(3)
 
 async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """start announcement conversation, store location"""
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the location:")
-    return LOCATION
+    """start announcement conversation"""
+    return await location_constructor(update, context)
 
 async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """store the location, ask for the message"""
-    context.user_data['location'] = update.message.text
+    #context.user_data['location'] = update.message.text
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the description:")
     return MESSAGE
 
@@ -94,7 +168,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     print("DEBUG: ", result)
     
     if result:
-        location = context.user_data['location']
+        location = context.user_data['selected_neighbourhood']
         message = context.user_data['message']
         pax = context.user_data['pax']
         print(f"DEBUG: {location}, {message}, {pax}")
@@ -113,10 +187,15 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
     return ConversationHandler.END
+# end /announce
+
+# /nearby
+
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel the conversation."""
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement cancelled.")
+    """Cancel onjoing operation"""
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Operation cancelled.")
     return ConversationHandler.END
 
 def main() -> None:
@@ -124,7 +203,17 @@ def main() -> None:
 
     application.add_handler(CommandHandler("start", start))
 
-    conv_handler = ConversationHandler(
+    location_conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('nearby', location_constructor)],
+        states={
+            REGION: [MessageHandler(filters.TEXT & ~filters.COMMAND, region_selected)],
+            NEIGHBOURHOOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, neighbourhood_selected)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+    application.add_handler(location_conv_handler)
+    
+    announcement_conv_handler = ConversationHandler(
         entry_points=[CommandHandler('announce', announce)],
         states={
             LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, location)],
@@ -133,7 +222,7 @@ def main() -> None:
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
-    application.add_handler(conv_handler)
+    application.add_handler(announcement_conv_handler)
     
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
