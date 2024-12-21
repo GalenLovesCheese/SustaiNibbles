@@ -15,31 +15,37 @@ mydb = mysql.connector.connect(
     host="localhost",
     user="user",
     password = PASS,
-    database = "table2" #"sustainibbles"
+    database = "table3" #"sustainibbles"
 )
 
 mycursor = mydb.cursor()
-mycursor.execute("CREATE DATABASE IF NOT EXISTS table2")
-mycursor.execute("CREATE TABLE IF NOT EXISTS Users (User VARCHAR(255), Type VARCHAR(255) CHECK(Type = 'Individual' OR Type = 'Business'))")
-mycursor.execute("CREATE TABLE IF NOT EXISTS Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
-mycursor.execute("INSERT INTO Users(User, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business'), ('1793678228', 'Business')")
-mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3)")
-mycursor.execute("SELECT * FROM Users") 
-  
-# fetch all the matching rows  
-usr = mycursor.fetchall() 
+#Executes database code if doesn't exist yet
+mycursor.execute("SHOW DATABASES")
+databases = mycursor.fetchall()
+databaseExists = False
+for database in databases:
+    if 'table3' in database:
+        databaseExists = True
+        break
+
+if databaseExists: #== False:
+    #mycursor.execute("CREATE DATABASE table3")
+    #mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255) CHECK(Type = 'Individual' OR Type = 'Business'))")
+    #mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
+    mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business'), ('1793678228', 'Business')")
+    mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3)")
+
   
 # loop through the rows 
+print("Users Table:")
+mycursor.execute("SELECT * FROM Users") 
+usr = mycursor.fetchall() 
 print("Users Table:")
 for row in usr: 
     print(row)
 
 mycursor.execute("SELECT * FROM Announcements") 
-  
-# fetch all the matching rows  
 ann = mycursor.fetchall() 
-  
-# loop through the rows 
 print("Announcements Table:")
 for row in ann: 
     print(row)
@@ -83,7 +89,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_id = str(update.effective_user.id)
     print("DEBUG UID: ", user_id)
     
-    mycursor.execute("SELECT * FROM Users WHERE User=%s AND Type=%s", (user_id, 'Business'))
+    mycursor.execute("SELECT * FROM Users WHERE Name=%s AND Type=%s", (user_id, 'Business'))
     result = mycursor.fetchall()
     print("DEBUG: ", result)
     
