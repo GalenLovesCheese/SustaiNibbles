@@ -2,7 +2,7 @@ import os
 import logging
 import mysql.connector
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
 import mysql.connector
 
@@ -53,24 +53,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define states
 LOCATION, MESSAGE, PAX = range(3)
 
-async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the announcement conversation."""
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the location:")
     return LOCATION
 
-async def location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the location and ask for the message."""
     context.user_data['location'] = update.message.text
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the description:")
     return MESSAGE
 
-async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the message and ask for the pax."""
     context.user_data['message'] = update.message.text
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the pax:")
     return PAX
 
-async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the pax and make the announcement."""
     context.user_data['pax'] = update.message.text
     user_id = str(update.effective_user.id)
@@ -92,7 +92,10 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
     return ConversationHandler.END
 
-
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cancel the conversation."""
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement cancelled.")
+    return ConversationHandler.END
 
 def main() -> None:
     """Start the bot."""
@@ -101,7 +104,6 @@ def main() -> None:
 
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("announce", announce))
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('announce', announce)],
