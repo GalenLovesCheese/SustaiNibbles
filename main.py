@@ -65,8 +65,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles! Run /join to get started!")
 
 
-REGION, NEIGHBOURHOOD = range(2)
-
+REGION, NEIGHBOURHOOD, MESSAGE, PAX = range(4)
 regions = {
     "North": ["Sembawang", "Woodlands", "Yishun"],
     "North-East": ["Ang Mo Kio", "Hougang", "Punggol", "Sengkang", "Serangoon"],
@@ -111,7 +110,7 @@ async def region_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=f"Great! Please select a neighbourhood within {selected_region}:",
             reply_markup=reply_markup
         )
-        #return NEIGHBOURHOOD
+        return NEIGHBOURHOOD
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -125,11 +124,18 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
 
     if selected_region and selected_neighbourhood in regions[selected_region]:
         context.user_data['selected_neighbourhood'] = selected_neighbourhood
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"You have selected {selected_neighbourhood} in the {selected_region} region."
-        )
-        return LOCATION
+        print("DEBUG:: CTX USER DATA CMD: ", context.user_data.get('command'))
+        if context.user_data.get('command') == 'announce':
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"You have selected {selected_neighbourhood} in the {selected_region} region.\nPlease enter the announcement details"
+            )
+            return MESSAGE
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"You have selected {selected_neighbourhood} in the {selected_region} region."
+            )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -138,22 +144,30 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 #end helper
 
-# /announce
-LOCATION, MESSAGE, PAX = range(3)
-
-async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """start announcement conversation"""
+## GALEN NEARBY HERE; EXMAPLE BC ND CTX FOR ANNOUNCEMENTS
+# /nearby
+async def nearby(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Start the nearby conversation."""
+    context.user_data['command'] = 'nearby'
     return await location_constructor(update, context)
 
-async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """store the location, ask for the message"""
-    #context.user_data['location'] = update.message.text
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the description:")
-    return MESSAGE
+# /announce
+async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """start announcement conversation"""
+    context.user_data['command'] = 'announce'
+    print("DEBUG: Starting announce command")
+    return await location_constructor(update, context)
+
+# async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+#     """store the location, ask for the message"""
+#     #context.user_data['location'] = update.message.text
+#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the description:")
+#     return MESSAGE
 
 async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """store the message, ask for the pax"""
     context.user_data['message'] = update.message.text
+    print(f"DEBUG: Message received: {context.user_data['message']}")
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the pax:")
     return PAX
 
@@ -194,7 +208,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Cancel onjoing operation"""
+    """Cancel ongoing operation"""
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Operation cancelled.")
     return ConversationHandler.END
 
@@ -203,26 +217,20 @@ def main() -> None:
 
     application.add_handler(CommandHandler("start", start))
 
-    location_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('nearby', location_constructor)],
+    conv_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler('announce', announce),
+            CommandHandler('nearby', nearby)
+        ],
         states={
             REGION: [MessageHandler(filters.TEXT & ~filters.COMMAND, region_selected)],
             NEIGHBOURHOOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, neighbourhood_selected)],
-        },
-        fallbacks=[CommandHandler('cancel', cancel)],
-    )
-    application.add_handler(location_conv_handler)
-    
-    announcement_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('announce', announce)],
-        states={
-            LOCATION: [MessageHandler(filters.TEXT & ~filters.COMMAND, location)],
             MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, message)],
             PAX: [MessageHandler(filters.TEXT & ~filters.COMMAND, pax)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
-    application.add_handler(announcement_conv_handler)
+    application.add_handler(conv_handler)
     
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
