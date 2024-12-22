@@ -1,20 +1,20 @@
 import os
 import logging
 import mysql.connector
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
 
 ## initialize the bot, database
 load_dotenv()
-
-PASS = os.getenv('PASSWORD')
 USER = os.getenv('USERNAME')
+PASS = os.getenv('PASSWORD')
 
 initialdb = mysql.connector.connect(
     host="localhost",
     user=USER,
     password = PASS,
+    database = "sustainibbles"
 )
 
 mycursor = initialdb.cursor()
@@ -51,105 +51,252 @@ else:
     )
     mycursor = mydb.cursor()
 
-#Debugging to test if all sample data runs, if no data is shown, something has gone wrong
-mycursor.execute("SELECT * FROM Users")
-result = mycursor.fetchall()
-for x in result:
-    print(x)
-mycursor.execute("SELECT * From Announcements")
-result = mycursor.fetchall()
-for x in result:
-    print(x)
+  
+# loop through the rows 
+mycursor.execute("SELECT * FROM Users") 
+usr = mycursor.fetchall() 
+print("Users Table:")
+for row in usr: 
+    print(row)
 
-        
-
+mycursor.execute("SELECT * FROM Announcements") 
+ann = mycursor.fetchall() 
+print("Announcements Table:")
+for row in ann: 
+    print(row)
+   
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-
-
 TOKEN = os.getenv('TOKEN')
 
+## define commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to Sustainibles! Run /join to get started!")
-
-async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """BUSINESS: Announce details of food surplus\nFormat:\nLOCATION: <location>\nMESSAGE: <message>\nPAX: <pax>"""
-    message = update.message.text
-    user_id = update.effective_user.id
-    
-    cursor.execute("SELECT * FROM users where username == %s", user_id)
-    result = cursor.fetchone()
-
-    if result and result['role'] == "business":
-        location = message.split("LOCATION: ")[1].split("\n")[0]
-        message = message.split("MESSAGE: ")[1].split("\n")[0]
-        pax = message.split("PAX: ")[1].split("\n")[0]
-        
-        cursor.execute("INSERT INTO announcements (location, message, pax) VALUES (%s, %s, %s)", (location, message, pax))
-        
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement has been made!")
-    else:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
+    """Get information about SustaiNibbles initiative"""
+    user_id = str(update.effective_user.id)
+    print("DEBUG UID: ", user_id)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles! Run /join to get started!")
 
 NAME, TYPE = range(2)
 
 # /join function
 async def join(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Please provide your name:")
-    return NAME
-
-async def set_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["name"] = update.message.text
-    await update.message.reply_text("Thanks! Now provide the type:")
+    # Automatically set the user's name as their effective_user.id
+    context.user_data["name"] = str(update.effective_user.id)
+    type_buttons = [["Individual"], ["Business"]]
+    reply_markup = ReplyKeyboardMarkup(type_buttons, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text(
+        text="Welcome! Your user ID has been set as your name. Please select a type:",
+        reply_markup=reply_markup
+    )
     return TYPE
 
 async def set_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Retrieve the name and selected type
     name = context.user_data.get("name")
     type_ = update.message.text
 
-    # # Insert data into MySQL database
-    # try:
-    #     cursor.execute("INSERT INTO user_data (name, type) VALUES (%s, %s)", (name, type_))
-    #     connection.commit()
-    #     await update.message.reply_text(f"Successfully added name: {name} with type: {type_} to the database!")
-    # except mysql.connector.Error as err:
-    #     await update.message.reply_text(f"Failed to add data to the database: {err}")
+    # Validate the type selection
+    if type_ not in ["Individual", "Business"]:
+        await update.message.reply_text("Invalid selection. Please choose either 'Individual' or 'Business' using the buttons.")
+        return TYPE  # Stay in the TYPE state
 
-    await update.message.reply_text(f"Received name: {name} and type: {type_} (not saved to the database).")
-
+    # Insert data into MySQL database
+    try:
+        mycursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_))
+        mydb.commit()
+        await update.message.reply_text(f"Successfully registered ID: {name} with type: {type_}!")
+    except mysql.connector.Error as err:
+        await update.message.reply_text(f"Database error: {err}")
+    mycursor.execute("SELECT * FROM Users") 
+    usr = mycursor.fetchall() 
+    print("DEBUG:: JOIN: Users Table:")
+    for row in usr: 
+        print(row)
     return ConversationHandler.END
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.message.reply_text("Operation canceled.")
+REGION, NEIGHBOURHOOD, MESSAGE, PAX = range(4)
+regions = {
+    "North": ["Sembawang", "Woodlands", "Yishun"],
+    "North-East": ["Ang Mo Kio", "Hougang", "Punggol", "Sengkang", "Serangoon"],
+    "East": ["Bedok", "Pasir Ris", "Tampines"],
+    "West": ["Bukit Batok", "Bukit Panjang", "Choa Chu Kang", "Clementi", "Jurong East", "Jurong West", "Tengah"],
+    "Central": ["Bishan", "Bukit Merah", "Bukit Timah", "Central Area", "Geylang", "Kallang/Whampoa", "Marine Parade", "Queenstown", "Toa Payoh"]
+    }
+
+async def location_constructor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Helper function for location selection: /nearby, /announce"""
+    regions_info = ""
+    for key, values in regions.items():
+        regions_info += f"{key.upper()}:\n"
+        for value in values:
+            regions_info += f"{value}\n"
+        regions_info += "\n"
+        
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=regions_info)
+
+    region_buttons = [["North", "North-East"], ["East", "West"], ["Central"]]
+    reply_markup = ReplyKeyboardMarkup(region_buttons, one_time_keyboard=True, resize_keyboard=True)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Please select a general region to proceed:",
+        reply_markup=reply_markup
+    )
+    return REGION
+
+
+async def region_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    selected_region = update.message.text
+
+    if selected_region in regions:
+        context.user_data['selected_region'] = selected_region
+        neighbourhoods = regions[selected_region]
+        neighbourhood_buttons = [[neighbourhood] for neighbourhood in neighbourhoods]
+        reply_markup = ReplyKeyboardMarkup(neighbourhood_buttons, one_time_keyboard=True, resize_keyboard=True)
+        
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"Great! Please select a neighbourhood within {selected_region}:",
+            reply_markup=reply_markup
+        )
+        return NEIGHBOURHOOD
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Invalid region. Please try again."
+        )
+        return REGION
+
+async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    selected_neighbourhood = update.message.text
+    selected_region = context.user_data.get('selected_region')
+
+    if selected_region and selected_neighbourhood in regions[selected_region]:
+        context.user_data['selected_neighbourhood'] = selected_neighbourhood
+        print("DEBUG:: CTX USER DATA CMD: ", context.user_data.get('command'))
+        if context.user_data.get('command') == 'announce':
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"You have selected {selected_neighbourhood} in the {selected_region} region.\nPlease enter the announcement details"
+            )
+            return MESSAGE
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"You have selected {selected_neighbourhood} in the {selected_region} region."
+            )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Something went wrong. Please start over."
+        )
+    return ConversationHandler.END
+#end helper
+
+## GALEN NEARBY HERE; EXMAPLE BC ND CTX FOR ANNOUNCEMENTS
+# /nearby
+async def nearby(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Start the nearby conversation."""
+    context.user_data['command'] = 'nearby'
+    return await location_constructor(update, context)
+
+# /announce
+async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """start announcement conversation"""
+    context.user_data['command'] = 'announce'
+    print("DEBUG: Starting announce command")
+    return await location_constructor(update, context)
+
+# async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+#     """store the location, ask for the message"""
+#     #context.user_data['location'] = update.message.text
+#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the description:")
+#     return MESSAGE
+
+async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """store the message, ask for the pax"""
+    context.user_data['message'] = update.message.text
+    print(f"DEBUG: Message received: {context.user_data['message']}")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the pax:")
+    return PAX
+
+async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """store the pax, add announcement to database"""
+    context.user_data['pax'] = update.message.text
+    user_id = str(update.effective_user.id)
+    print("DEBUG UID: ", user_id)
+    
+    mycursor.execute("SELECT * FROM Users WHERE Name=%s AND Type=%s", (user_id, 'Business'))
+    mydb.commit()
+    result = mycursor.fetchall()
+    print("DEBUG: ", result)
+    
+    if result:
+        location = context.user_data['selected_neighbourhood']
+        message = context.user_data['message']
+        pax = context.user_data['pax']
+        print(f"DEBUG: {location}, {message}, {pax}")
+        mycursor.execute("INSERT INTO Announcements (Location, Message, PAX) VALUES (%s, %s, %s)", (location, message, pax))
+        mydb.commit()
+        mycursor.execute("SELECT * FROM Announcements") 
+  
+        # fetch all the matching rows  
+        ann = mycursor.fetchall() 
+        
+        # loop through the rows 
+        print("Announcements Table:")
+        for row in ann: 
+            print(row)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement has been made!")
+        
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
+    return ConversationHandler.END
+# end /announce
+
+# /nearby
+
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Cancel ongoing operation"""
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Operation cancelled.")
     return ConversationHandler.END
 
 def main() -> None:
-    """Start the bot."""
-    # Create the Application and pass it your bot's token.
     application = Application.builder().token(TOKEN).build()
 
-    # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("announce", announce))
 
-    # on non command i.e message - echo the message on Telegram
-    #application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-
-    # Conversation handler for /join
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("join", join)],
+        entry_points=[
+            CommandHandler('announce', announce),
+            CommandHandler('nearby', nearby)
+        ],
         states={
-            NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_name)],
-            TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_type)],
+            REGION: [MessageHandler(filters.TEXT & ~filters.COMMAND, region_selected)],
+            NEIGHBOURHOOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, neighbourhood_selected)],
+            MESSAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, message)],
+            PAX: [MessageHandler(filters.TEXT & ~filters.COMMAND, pax)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)],
+        fallbacks=[CommandHandler('cancel', cancel)],
     )
     application.add_handler(conv_handler)
-    # Run the bot until the user presses Ctrl-C
+    
+    join_handler = ConversationHandler(
+        entry_points=[CommandHandler('join', join)],
+        states={
+            TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_type)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+    application.add_handler(join_handler)
+    
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
     main()
+    
