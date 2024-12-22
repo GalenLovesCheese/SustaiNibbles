@@ -27,12 +27,6 @@ logging.basicConfig(
 )
 
 cursor = mydb.cursor()
-#mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255))")
-# mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business')")
-# cursor.execute("SELECT * FROM Users")
-# myresult = cursor.fetchall()
-# for x in myresult:
-#     print(x)
 
 TOKEN = os.getenv('TOKEN')
 
@@ -74,7 +68,7 @@ async def join(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def set_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # Retrieve the name and selected type
-    name = context.user_data.get("name")
+    name = str(context.user_data.get("name"))
     type_ = update.message.text
 
     # Validate the type selection
@@ -84,7 +78,7 @@ async def set_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     # Insert data into MySQL database
     try:
-        mycursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_))
+        cursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_))
         # mydb.commit()
         await update.message.reply_text(f"Successfully registered ID: {name} with type: {type_}!")
     except mysql.connector.Error as err:
