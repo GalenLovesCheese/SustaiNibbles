@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 ## initialize the bot, database
 load_dotenv()
-USER = os.getenv('USERNAME')
+#USER = os.getenv('USERNAME')
+USER = "root"
 PASS = os.getenv('PASSWORD')
 
 initialdb = mysql.connector.connect(
@@ -200,15 +201,17 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
                     text=f"There are no announcements currently for \n{selected_neighbourhood}"
                 )
             else:
-                # Create announcement bubble with ~5 most recent announcments?
                 announcementBubble = ""
+                print(announcements)
                 for announcement in announcements:
-                    for field in announcement:
-                        announcementBubble += str(field) + "\n"
-                    announcementBubble += "\n"
+                    announcementBubble += f"Time: <Template date>\n"
+                    announcementBubble += f"Neighbourhood: {str(announcement[0])}\n"
+                    announcementBubble += f"Description: {str(announcement[1])}\n"
+                    announcementBubble += f"Pax: {str(announcement[2])}\n"
+    
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text=f"Initiatives in {neighbourhood_selected} for <Placeholder date>:\n{announcementBubble}"
+                    text=f"Initiatives in {selected_neighbourhood}:\n{announcementBubble}"
                 )
     else:
         await context.bot.send_message(
