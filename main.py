@@ -14,7 +14,7 @@ initialdb = mysql.connector.connect(
     host="localhost",
     user=USER,
     password = PASS,
-    database = "sustainibbles"
+    #database = "table5"
 )
 
 mycursor = initialdb.cursor()
@@ -77,7 +77,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Get information about SustaiNibbles initiative"""
     user_id = str(update.effective_user.id)
     print("DEBUG UID: ", user_id)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles! Run /join to get started!")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles 😋! Run /join to get started!")
 
 NAME, TYPE = range(2)
 
@@ -88,7 +88,7 @@ async def join(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     type_buttons = [["Individual"], ["Business"]]
     reply_markup = ReplyKeyboardMarkup(type_buttons, one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text(
-        text="Welcome! Your user ID has been set as your name. Please select a type:",
+        text="Welcome! Your user ID has been set. Please select whether you are an indiviidual or a business:",
         reply_markup=reply_markup
     )
     return TYPE
@@ -178,6 +178,7 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
         context.user_data['selected_neighbourhood'] = selected_neighbourhood
         print("DEBUG:: CTX USER DATA CMD: ", context.user_data.get('command'))
         if context.user_data.get('command') == 'announce':
+            print("DEBUG: ENTER ANNOUNCE REGION command")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=f"You have selected {selected_neighbourhood} in the {selected_region} region.\nPlease enter the announcement details"
@@ -251,7 +252,6 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     print("DEBUG UID: ", user_id)
     
     mycursor.execute("SELECT * FROM Users WHERE Name=%s AND Type=%s", (user_id, 'Business'))
-    mydb.commit()
     result = mycursor.fetchall()
     print("DEBUG: ", result)
     
@@ -259,19 +259,20 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         location = context.user_data['selected_neighbourhood']
         message = context.user_data['message']
         pax = context.user_data['pax']
-        print(f"DEBUG: {location}, {message}, {pax}")
+        print(f"DEBUG FULL ANNOUNCEMENT: {location}, {message}, {pax}")
         mycursor.execute("INSERT INTO Announcements (Location, Message, PAX) VALUES (%s, %s, %s)", (location, message, pax))
         mydb.commit()
-        mycursor.execute("SELECT * FROM Announcements") 
+       
   
         # fetch all the matching rows  
+        mycursor.execute("SELECT * FROM Announcements") 
         ann = mycursor.fetchall() 
         
         # loop through the rows 
         print("Announcements Table:")
         for row in ann: 
             print(row)
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement has been made!")
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Announcement has been made! 😊")
         
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
