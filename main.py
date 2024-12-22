@@ -147,14 +147,16 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
                     text=f"There are no announcements currently for \n{selected_neighbourhood}"
                 )
             else:
+                # Create announcement bubble with ~5 most recent announcments?
+                announcementBubble = ""
                 for announcement in announcements:
-                    announcementBubble = ""
                     for field in announcement:
                         announcementBubble += str(field) + "\n"
-                    await context.bot.send_message(
-                        chat_id=update.effective_chat.id,
-                        text=f"Placeholder date:\n{announcementBubble}"
-                    )
+                    announcementBubble += "\n"
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"Initiatives in {neighbourhood_selected} for <Placeholder date>:\n{announcementBubble}"
+                )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
