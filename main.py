@@ -8,32 +8,49 @@ import mysql.connector
 
 ## initialize the bot, database
 load_dotenv()
-
+USER = os.getenv('USER')
 PASS = os.getenv('PASSWORD')
 
-mydb = mysql.connector.connect(
+initialdb = mysql.connector.connect(
     host="localhost",
     user="user",
     password = PASS,
     database = "table3" #"sustainibbles"
 )
 
-mycursor = mydb.cursor()
-#Executes database code if doesn't exist yet
+mycursor = initialdb.cursor()
+#Checks if database exists, if not, create database structure. Always connects to database at the end
 mycursor.execute("SHOW DATABASES")
 databases = mycursor.fetchall()
 databaseExists = False
 for database in databases:
-    if 'table3' in database:
+    if 'sustainibbles' in database:
         databaseExists = True
         break
 
-if databaseExists: #== False:
-    #mycursor.execute("CREATE DATABASE table3")
-    #mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255) CHECK(Type = 'Individual' OR Type = 'Business'))")
-    #mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
+if databaseExists == False:
+    mycursor.execute("CREATE DATABASE sustainibbles")
+    mydb = mysql.connector.connect(
+        host = "localhost",
+        user = USER,
+        password = PASS,
+        database = "sustainibbles"
+    )
+    mycursor = mydb.cursor()
+    mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255))")
+    mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
     mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business')")
+    mydb.commit()
     mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3)")
+    mydb.commit()
+else:
+    mydb = mysql.connector.connect(
+        host = "localhost",
+        user = USER,
+        password = PASS,
+        database = "sustainibbles"
+    )
+    mycursor = mydb.cursor()
 
   
 # loop through the rows 
@@ -90,7 +107,7 @@ async def set_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # Insert data into MySQL database
     try:
         mycursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_))
-        # mydb.commit()
+        mydb.commit()
         await update.message.reply_text(f"Successfully registered ID: {name} with type: {type_}!")
     except mysql.connector.Error as err:
         await update.message.reply_text(f"Database error: {err}")
@@ -214,6 +231,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     print("DEBUG UID: ", user_id)
     
     mycursor.execute("SELECT * FROM Users WHERE Name=%s AND Type=%s", (user_id, 'Business'))
+    mydb.commit()
     result = mycursor.fetchall()
     print("DEBUG: ", result)
     
@@ -223,6 +241,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         pax = context.user_data['pax']
         print(f"DEBUG: {location}, {message}, {pax}")
         mycursor.execute("INSERT INTO Announcements (Location, Message, PAX) VALUES (%s, %s, %s)", (location, message, pax))
+        mydb.commit()
         mycursor.execute("SELECT * FROM Announcements") 
   
         # fetch all the matching rows  
