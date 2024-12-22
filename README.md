@@ -14,9 +14,7 @@ Sustainable living emphasizes mindful consumption and reducing waste at the indi
 
 ### **Idea Inspiration**
 
-The idea of SustaiNibbles came from the experience of one of our team members, Syn Kit. This is an account of the experience that inspired SustaiNibbles.
-
-"My sister works part-time in a café. At the end of her shifts, she often brings back leftover sandwiches—still fresh and entirely consumable but unable to be sold the next day. She told me this was standard practice across many cafés and restaurants. While these businesses dislike the idea of wasting food, they often lack the infrastructure or connections to donate it."
+The idea of SustaiNibbles came from the experience of one of our team members, Syn Ki, inspired by her sister, who works part-time in a café. At the end of her shifts, she often brings back leftover sandwiches—still fresh and entirely consumable but unable to be sold the next day. She told me this was standard practice across many cafés and restaurants. While these businesses dislike the idea of wasting food, they often lack the infrastructure or connections to donate it. This gave us the idea to develop SustaiNibbles
 
 This personal connection sparked an idea. What if there was a way to bridge the gap between businesses with surplus food and individuals or organizations that could benefit from it? The unused food could be a source of nourishment for someone in need, but without an accessible system in place, it often ends up in the trash.
 
