@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 
 ## initialize the bot, database
 load_dotenv()
-#USER = os.getenv('USERNAME')
-USER = "root"
+USER = os.getenv('USERNAME')
 PASS = os.getenv('PASSWORD')
 
 initialdb = mysql.connector.connect(
