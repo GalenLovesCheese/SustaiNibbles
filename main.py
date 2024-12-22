@@ -14,7 +14,7 @@ initialdb = mysql.connector.connect(
     host="localhost",
     user=USER,
     password = PASS,
-    #database = "table5"
+    #database = "table1"
 )
 
 mycursor = initialdb.cursor()
@@ -23,17 +23,17 @@ mycursor.execute("SHOW DATABASES")
 databases = mycursor.fetchall()
 databaseExists = False
 for database in databases:
-    if 'sustainibbles' in database:
+    if 'table1' in database:
         databaseExists = True
         break
 
 if databaseExists == False:
-    mycursor.execute("CREATE DATABASE sustainibbles")
+    mycursor.execute("CREATE DATABASE table1")
     mydb = mysql.connector.connect(
         host = "localhost",
         user = USER,
         password = PASS,
-        database = "sustainibbles"
+        database = "table1"
     )
     mycursor = mydb.cursor()
     mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255))")
@@ -47,7 +47,7 @@ else:
         host = "localhost",
         user = USER,
         password = PASS,
-        database = "sustainibbles"
+        database = "table1"
     )
     mycursor = mydb.cursor()
 
@@ -72,12 +72,65 @@ logging.basicConfig(
 
 TOKEN = os.getenv('TOKEN')
 
-## define commands
+## define commands 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Get information about SustaiNibbles initiative"""
     user_id = str(update.effective_user.id)
     print("DEBUG UID: ", user_id)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles 😋! Run /join to get started!")
+    terms = """
+    Welcome to SustaiNibbles 😋! By using this bot, you agree to the following terms and conditions. Please read them carefully before proceeding.  
+
+1. Purpose  
+This bot facilitates the sharing of surplus food from businesses to individuals in need, promoting sustainability and reducing food waste.  
+
+2. Eligibility  
+Individuals: You must be at least 18 years old to use this bot.  
+Businesses: Only verified businesses may register to share surplus food.  
+
+3. Responsibility of Users  
+Businesses:  
+Ensure that surplus food shared is safe and consumable at the time of notification.  
+Provide accurate details about the food, including quantity, type, and pickup time/location.  
+Individuals:  
+Collect food within the specified timeframe and location provided by businesses.  
+Confirm you understand and accept the condition of the food.  
+
+4. Food Safety and Liability  
+This bot does not verify the quality, safety, or condition of the food being shared.  
+The bot and its creators are not responsible for any adverse effects arising from the consumption of food obtained through this service.  
+Food recipients consume the food at their own risk.  
+
+5. Prohibited Use  
+Misuse of the bot, including providing false information, harassment, or any illegal activity, is strictly prohibited.  
+Businesses must not share expired or hazardous food.  
+
+6. Data Privacy  
+The bot collects and uses minimal data required for notifications and interactions.  
+We do not share your personal information with third parties without your consent.  
+
+7. Modifications to Terms  
+These terms may be updated periodically. Users will be notified of significant changes, and continued use of the bot constitutes acceptance of the updated terms.  
+
+8. Disclaimer of Warranties  
+This service is provided “as is” without any warranties, express or implied.  
+We do not guarantee uninterrupted or error-free operation of the bot.  
+
+9. Termination of Access  
+We reserve the right to suspend or terminate access to the bot for any user who violates these terms.  
+
+10. Governing Law  
+These terms and conditions are governed by the laws, without regard to its conflict of law provisions.  
+
+By using this bot, you confirm that you have read, understood, and agree to these terms and conditions.  
+    
+Run /join to get started!    
+"""
+
+    # Send the terms as a message
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=terms
+    )
 
 NAME, TYPE = range(2)
 
@@ -220,7 +273,6 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
     return ConversationHandler.END
 #end helper
 
-## GALEN NEARBY HERE; EXMAPLE BC ND CTX FOR ANNOUNCEMENTS
 # /nearby
 async def nearby(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the nearby conversation."""
@@ -233,12 +285,6 @@ async def announce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['command'] = 'announce'
     print("DEBUG: Starting announce command")
     return await location_constructor(update, context)
-
-# async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-#     """store the location, ask for the message"""
-#     #context.user_data['location'] = update.message.text
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text="Please enter the description:")
-#     return MESSAGE
 
 async def message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """store the message, ask for the pax"""
@@ -280,10 +326,6 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="You do not have permission to use this command.")
     return ConversationHandler.END
 # end /announce
-
-# /nearby
-
-
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Cancel ongoing operation"""
