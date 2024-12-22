@@ -4,40 +4,55 @@ import mysql.connector
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
-import mysql.connector
 
 ## initialize the bot, database
 load_dotenv()
-
+USER = os.getenv('USERNAME')
 PASS = os.getenv('PASSWORD')
 
-mydb = mysql.connector.connect(
+initialdb = mysql.connector.connect(
     host="localhost",
-    user="root",
+    user=USER,
     password = PASS,
-    database = "table3" #"sustainibbles"
+    database = "sustainibbles"
 )
 
-mycursor = mydb.cursor()
-#Executes database code if doesn't exist yet
+mycursor = initialdb.cursor()
+#Checks if database exists, if not, create database structure. Always connects to database at the end
 mycursor.execute("SHOW DATABASES")
 databases = mycursor.fetchall()
 databaseExists = False
 for database in databases:
-    if 'table3' in database:
+    if 'sustainibbles' in database:
         databaseExists = True
         break
 
-if databaseExists: #== False:
-    #mycursor.execute("CREATE DATABASE table3")
-    #mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255) CHECK(Type = 'Individual' OR Type = 'Business'))")
-    #mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
-    mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business'), ('1793678228', 'Business')")
-    mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3), ('Bukit Panjang', 'Skibidi balls', 2)")
+if databaseExists == False:
+    mycursor.execute("CREATE DATABASE sustainibbles")
+    mydb = mysql.connector.connect(
+        host = "localhost",
+        user = USER,
+        password = PASS,
+        database = "sustainibbles"
+    )
+    mycursor = mydb.cursor()
+    mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255))")
+    mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
+    mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business')")
+    mydb.commit()
+    mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3)")
+    mydb.commit()
+else:
+    mydb = mysql.connector.connect(
+        host = "localhost",
+        user = USER,
+        password = PASS,
+        database = "sustainibbles"
+    )
+    mycursor = mydb.cursor()
 
   
 # loop through the rows 
-print("Users Table:")
 mycursor.execute("SELECT * FROM Users") 
 usr = mycursor.fetchall() 
 print("Users Table:")
@@ -64,6 +79,43 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("DEBUG UID: ", user_id)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to SustaiNibbles! Run /join to get started!")
 
+NAME, TYPE = range(2)
+
+# /join function
+async def join(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Automatically set the user's name as their effective_user.id
+    context.user_data["name"] = str(update.effective_user.id)
+    type_buttons = [["Individual"], ["Business"]]
+    reply_markup = ReplyKeyboardMarkup(type_buttons, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text(
+        text="Welcome! Your user ID has been set as your name. Please select a type:",
+        reply_markup=reply_markup
+    )
+    return TYPE
+
+async def set_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # Retrieve the name and selected type
+    name = context.user_data.get("name")
+    type_ = update.message.text
+
+    # Validate the type selection
+    if type_ not in ["Individual", "Business"]:
+        await update.message.reply_text("Invalid selection. Please choose either 'Individual' or 'Business' using the buttons.")
+        return TYPE  # Stay in the TYPE state
+
+    # Insert data into MySQL database
+    try:
+        mycursor.execute("INSERT INTO Users (Name, Type) VALUES (%s, %s)", (name, type_))
+        mydb.commit()
+        await update.message.reply_text(f"Successfully registered ID: {name} with type: {type_}!")
+    except mysql.connector.Error as err:
+        await update.message.reply_text(f"Database error: {err}")
+    mycursor.execute("SELECT * FROM Users") 
+    usr = mycursor.fetchall() 
+    print("DEBUG:: JOIN: Users Table:")
+    for row in usr: 
+        print(row)
+    return ConversationHandler.END
 
 REGION, NEIGHBOURHOOD, MESSAGE, PAX = range(4)
 regions = {
@@ -199,6 +251,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     print("DEBUG UID: ", user_id)
     
     mycursor.execute("SELECT * FROM Users WHERE Name=%s AND Type=%s", (user_id, 'Business'))
+    mydb.commit()
     result = mycursor.fetchall()
     print("DEBUG: ", result)
     
@@ -208,6 +261,7 @@ async def pax(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         pax = context.user_data['pax']
         print(f"DEBUG: {location}, {message}, {pax}")
         mycursor.execute("INSERT INTO Announcements (Location, Message, PAX) VALUES (%s, %s, %s)", (location, message, pax))
+        mydb.commit()
         mycursor.execute("SELECT * FROM Announcements") 
   
         # fetch all the matching rows  
@@ -253,7 +307,17 @@ def main() -> None:
     )
     application.add_handler(conv_handler)
     
+    join_handler = ConversationHandler(
+        entry_points=[CommandHandler('join', join)],
+        states={
+            TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, set_type)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
+    )
+    application.add_handler(join_handler)
+    
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
     main()
+    
