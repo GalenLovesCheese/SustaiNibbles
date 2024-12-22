@@ -188,6 +188,27 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
                 chat_id=update.effective_chat.id,
                 text=f"You have selected {selected_neighbourhood} in the {selected_region} region."
             )
+            mycursor.execute(
+            "SELECT Location, Message, PAX FROM Announcements WHERE Location = %s", 
+            (selected_neighbourhood,)
+            )
+            announcements = mycursor.fetchall()
+            if announcements == []:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"There are no announcements currently for \n{selected_neighbourhood}"
+                )
+            else:
+                # Create announcement bubble with ~5 most recent announcments?
+                announcementBubble = ""
+                for announcement in announcements:
+                    for field in announcement:
+                        announcementBubble += str(field) + "\n"
+                    announcementBubble += "\n"
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"Initiatives in {neighbourhood_selected} for <Placeholder date>:\n{announcementBubble}"
+                )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
