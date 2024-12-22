@@ -4,18 +4,17 @@ import mysql.connector
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
-import mysql.connector
 
 ## initialize the bot, database
 load_dotenv()
-USER = os.getenv('USER')
+USER = os.getenv('USERNAME')
 PASS = os.getenv('PASSWORD')
 
 initialdb = mysql.connector.connect(
     host="localhost",
-    user="user",
+    user=USER,
     password = PASS,
-    database = "table3" #"sustainibbles"
+    database = "sustainibbles"
 )
 
 mycursor = initialdb.cursor()
