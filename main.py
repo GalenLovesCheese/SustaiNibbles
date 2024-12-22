@@ -13,7 +13,7 @@ PASS = os.getenv('PASSWORD')
 
 mydb = mysql.connector.connect(
     host="localhost",
-    user="user",
+    user="root",
     password = PASS,
     database = "table3" #"sustainibbles"
 )
@@ -33,7 +33,7 @@ if databaseExists: #== False:
     #mycursor.execute("CREATE TABLE Users (Name VARCHAR(255), Type VARCHAR(255) CHECK(Type = 'Individual' OR Type = 'Business'))")
     #mycursor.execute("CREATE TABLE Announcements (Location VARCHAR(255), Message VARCHAR(255), PAX int)")
     mycursor.execute("INSERT INTO Users(Name, Type) VALUES('Ben', 'Individual'),('Thomas', 'Individual'),('Margaret', 'Individual'),('Dumping Donuts', 'Business'), ('Ivy Cafe','Business'), ('1793678228', 'Business')")
-    mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3)")
+    mycursor.execute("INSERT INTO Announcements(Location, Message, PAX) VALUES('Bukit Panjang', 'Extra rice left over at store, up to 5 people can  take', 5), ('King Albert Park', 'Extra prata remaining', 2), ('Choa Chu Kang', 'Extra chicken remaining', 3), ('Bukit Panjang', 'Skibidi balls', 2)")
 
   
 # loop through the rows 
@@ -136,6 +136,25 @@ async def neighbourhood_selected(update: Update, context: ContextTypes.DEFAULT_T
                 chat_id=update.effective_chat.id,
                 text=f"You have selected {selected_neighbourhood} in the {selected_region} region."
             )
+            mycursor.execute(
+            "SELECT Location, Message, PAX FROM Announcements WHERE Location = %s", 
+            (selected_neighbourhood,)
+            )
+            announcements = mycursor.fetchall()
+            if announcements == []:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f"There are no announcements currently for \n{selected_neighbourhood}"
+                )
+            else:
+                for announcement in announcements:
+                    announcementBubble = ""
+                    for field in announcement:
+                        announcementBubble += str(field) + "\n"
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=f"Placeholder date:\n{announcementBubble}"
+                    )
     else:
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
